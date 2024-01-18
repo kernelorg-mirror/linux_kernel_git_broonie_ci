@@ -64,6 +64,7 @@ Everything else
    ELF
    liveupdate
    netlink/index
+   shadow_stack
    sysfs-platform_profile
    vduse
    futex2
