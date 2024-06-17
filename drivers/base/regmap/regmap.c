@@ -1088,6 +1088,23 @@ skip_format_initialization:
 			goto err_range;
 		}
 
+		/*
+		 * These should be fatal but we have a lot of buggy
+		 * drivers currently so print the error but don't
+		 * fail.
+		 */
+		if (range_cfg->range_min >= (range_cfg->window_start +
+					     range_cfg->window_len) &&
+		    !(range_cfg->range_min < range_cfg->window_start))
+			dev_err(map->dev, "Range %d starts within window\n",
+				i);
+
+		if (range_cfg->range_max < (range_cfg->window_start +
+					    range_cfg->window_len) &&
+		    !(range_cfg->range_max < range_cfg->window_start))
+			dev_err(map->dev, "Range %d ends within window\n",
+				i);
+
 		/* Make sure, that this register range has no selector
 		   or data window within its boundary */
 		for (j = 0; j < config->num_ranges; j++) {
