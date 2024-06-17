@@ -2006,6 +2006,20 @@ static void __init fpsimd_pm_init(void)
 static inline void fpsimd_pm_init(void) { }
 #endif /* CONFIG_CPU_PM */
 
+void fpsimd_idle_enter(void)
+{
+	/*
+	 * Leaving SME enabled may restrict the idle states used by
+	 * EL3 leading to additional resource consumption, disable
+	 * whenever we enter idle to avoid this.  Only do this if SME
+	 * is actually enabled to avoid overhead from reloading in
+	 * other cases.
+	 */
+	if (!IS_ENABLED(CONFIG_CPU_IDLE) && system_supports_sme() &&
+	    (read_sysreg_s(SYS_SVCR) & (SVCR_SM_MASK | SVCR_ZA_MASK)))
+		fpsimd_save_and_flush_cpu_state();
+}
+
 #ifdef CONFIG_HOTPLUG_CPU
 static int fpsimd_cpu_dead(unsigned int cpu)
 {
