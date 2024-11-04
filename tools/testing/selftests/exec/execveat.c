@@ -53,8 +53,8 @@ static int _check_execveat_fail(int fd, const char *path, int flags,
 
 	errno = 0;
 	snprintf(test_name, sizeof(test_name),
-		 "Check failure of execveat(%d, '%s', %d) with %s",
-		 fd, path?:"(null)", flags, errno_str);
+		 "Check failure of execveat(fd, '%s', %d) with %s",
+		 path?:"(null)", flags, errno_str);
 	rc = execveat_(fd, path, argv, envp, flags);
 
 	if (rc > 0) {
@@ -84,12 +84,12 @@ static int check_execveat_invoked_rc(int fd, const char *path, int flags,
 
 	if (pathlen > 40)
 		snprintf(test_name, sizeof(test_name),
-			 "Check success of execveat(%d, '%.20s...%s', %d)... ",
-			 fd, path, (path + pathlen - 20), flags);
+			 "Check success of execveat(fd, '%.20s...%s', %d)... ",
+			 path, (path + pathlen - 20), flags);
 	else
 		snprintf(test_name, sizeof(test_name),
-			 "Check success of execveat(%d, '%s', %d)... ",
-			 fd, path?:"(null)", flags);
+			 "Check success of execveat(fd, '%s', %d)... ",
+			 path?:"(null)", flags);
 
 	child = fork();
 	if (child < 0) {
