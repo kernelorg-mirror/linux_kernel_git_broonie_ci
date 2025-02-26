@@ -14,6 +14,7 @@ TEST_GEN_PROGS := \
 TEST_GEN_PROGS_EXTENDED := fp-pidbench fpsimd-test \
 	kernel-test \
 	rdvl-sme rdvl-sve \
+	sve-mangler \
 	sve-test \
 	ssve-test \
 	za-test \

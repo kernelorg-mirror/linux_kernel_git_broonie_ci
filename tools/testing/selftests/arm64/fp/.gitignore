@@ -5,6 +5,7 @@ fpsimd-test
 kernel-test
 rdvl-sme
 rdvl-sve
+sve-mangler
 sve-probe-vls
 sve-ptrace
 sve-test
