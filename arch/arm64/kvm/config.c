@@ -316,6 +316,12 @@ static bool feat_s1poe(struct kvm *kvm)
 		kvm_has_feat(kvm, FEAT_HPDS));
 }
 
+static bool feat_gcs(struct kvm *kvm)
+{
+	return (kvm_has_feat(kvm, FEAT_GCS) &&
+		kvm_has_feat(kvm, FEAT_S1PIE));
+}
+
 static bool feat_sme_smps(struct kvm *kvm)
 {
 	/*
@@ -1343,6 +1349,13 @@ static const struct reg_bits_to_feat_map id_aa64mmfr3_el1_feat_map[] = {
 static const DECLARE_IDREG_FEAT_MAP(id_aa64mmfr3_el1_desc, ID_AA64MMFR3_EL1,
 				    id_aa64mmfr3_el1_feat_map, FEAT_AA64EL1);
 
+static const struct reg_bits_to_feat_map id_aa64pfr1_el1_feat_map[] = {
+	NEEDS_FEAT(ID_AA64PFR1_EL1_GCS, feat_gcs),
+};
+
+static const DECLARE_IDREG_FEAT_MAP(id_aa64pfr1_el1_desc, ID_AA64PFR1_EL1,
+				    id_aa64pfr1_el1_feat_map, FEAT_AA64EL1);
+
 static const struct reg_bits_to_feat_map ich_hfgrtr_feat_map[] = {
 	NEEDS_FEAT(ICH_HFGRTR_EL2_ICC_APR_EL1 |
 		   ICH_HFGRTR_EL2_ICC_IDRn_EL1 |
@@ -1454,6 +1467,7 @@ void __init check_feature_map(void)
 
 static const struct reg_feat_map_desc *idreg_feat_maps[] = {
 	&id_aa64mmfr3_el1_desc,
+	&id_aa64pfr1_el1_desc,
 };
 
 static bool idreg_apply_deps(struct kvm *kvm, const struct reg_feat_map_desc *r)
