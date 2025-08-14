@@ -566,14 +566,16 @@ static void test_user_set_mte_reg(struct kvm_vcpu *vcpu)
 	struct reg_mask_range range = {
 		.addr = (__u64)masks,
 	};
+	const char *msg = NULL;
 	uint64_t val;
 	uint64_t mte;
 	uint64_t mte_frac;
-	int idx, err;
+	int idx, err, result;
 
 	if (!have_cap_arm_mte) {
-		ksft_test_result_skip("MTE capability not supported, nothing to test\n");
-		return;
+		msg = "MTE capability not supported, nothing to test";
+		result = KSFT_SKIP;
+		goto out;
 	}
 
 	/* Get writable masks for feature ID registers */
@@ -582,8 +584,9 @@ static void test_user_set_mte_reg(struct kvm_vcpu *vcpu)
 
 	idx = encoding_to_range_idx(SYS_ID_AA64PFR1_EL1);
 	if ((masks[idx] & ID_AA64PFR1_EL1_MTE_frac_MASK) == ID_AA64PFR1_EL1_MTE_frac_MASK) {
-		ksft_test_result_skip("ID_AA64PFR1_EL1.MTE_frac is officially writable, nothing to test\n");
-		return;
+		msg = "ID_AA64PFR1_EL1.MTE_frac is officially writable, nothing to test";
+		result = KSFT_SKIP;
+		goto out;
 	}
 
 	/*
@@ -602,8 +605,9 @@ static void test_user_set_mte_reg(struct kvm_vcpu *vcpu)
 	mte_frac = FIELD_GET(ARM64_FEATURE_MASK(ID_AA64PFR1_EL1_MTE_frac), val);
 	if (mte != ID_AA64PFR1_EL1_MTE_MTE2 ||
 	    mte_frac != ID_AA64PFR1_EL1_MTE_frac_NI) {
-		ksft_test_result_skip("MTE_ASYNC or MTE_ASYMM are supported, nothing to test\n");
-		return;
+		msg = "MTE_ASYNC or MTE_ASYMM are supported, nothing to test";
+		result = KSFT_SKIP;
+		goto out;
 	}
 
 	/* Try to set MTE_frac=0. */
@@ -611,16 +615,22 @@ static void test_user_set_mte_reg(struct kvm_vcpu *vcpu)
 	val |= FIELD_PREP(ID_AA64PFR1_EL1_MTE_frac_MASK, 0);
 	err = __vcpu_set_reg(vcpu, KVM_ARM64_SYS_REG(SYS_ID_AA64PFR1_EL1), val);
 	if (err) {
-		ksft_test_result_fail("ID_AA64PFR1_EL1.MTE_frac=0 was not accepted\n");
-		return;
+		msg = "ID_AA64PFR1_EL1.MTE_frac=0 was not accepted";
+		result = KSFT_FAIL;
+		goto out;
 	}
 
 	val = vcpu_get_reg(vcpu, KVM_ARM64_SYS_REG(SYS_ID_AA64PFR1_EL1));
 	mte_frac = FIELD_GET(ARM64_FEATURE_MASK(ID_AA64PFR1_EL1_MTE_frac), val);
 	if (mte_frac == ID_AA64PFR1_EL1_MTE_frac_NI)
-		ksft_test_result_pass("ID_AA64PFR1_EL1.MTE_frac=0 accepted and still 0xF\n");
+		msg = "ID_AA64PFR1_EL1.MTE_frac=0 accepted and still 0xF";
 	else
-		ksft_test_result_pass("ID_AA64PFR1_EL1.MTE_frac no longer 0xF\n");
+		msg = "ID_AA64PFR1_EL1.MTE_frac no longer 0xF";
+	result = KSFT_PASS;
+
+out:
+	ksft_test_result_code(result, "ID_AA64PFR1_EL1.MTE_frac",
+			      msg ? "%s" : NULL, msg);
 }
 
 static void test_guest_reg_read(struct kvm_vcpu *vcpu)
