@@ -484,8 +484,8 @@ static void test_user_set_mpam_reg(struct kvm_vcpu *vcpu)
 	/* Writeable? Nothing to test! */
 	idx = encoding_to_range_idx(SYS_ID_AA64PFR0_EL1);
 	if ((masks[idx] & ID_AA64PFR0_EL1_MPAM_MASK) == ID_AA64PFR0_EL1_MPAM_MASK) {
-		ksft_test_result_skip("ID_AA64PFR0_EL1.MPAM is officially writable, nothing to test\n");
-		return;
+		ksft_print_msg("ID_AA64PFR0_EL1.MPAM is officially writable, nothing to test\n");
+		goto skip_all;
 	}
 
 	/* Get the id register value */
@@ -495,34 +495,30 @@ static void test_user_set_mpam_reg(struct kvm_vcpu *vcpu)
 	val &= ~ID_AA64PFR0_EL1_MPAM_MASK;
 	val |= FIELD_PREP(ID_AA64PFR0_EL1_MPAM_MASK, 0);
 	err = __vcpu_set_reg(vcpu, KVM_ARM64_SYS_REG(SYS_ID_AA64PFR0_EL1), val);
-	if (err)
-		ksft_test_result_fail("ID_AA64PFR0_EL1.MPAM=0 was not accepted\n");
-	else
-		ksft_test_result_pass("ID_AA64PFR0_EL1.MPAM=0 worked\n");
+	ksft_test_result(err != 0, "ID_AA64PFR0_EL1.MPAM=0 worked\n");
 
 	/* Try to set MPAM=1 */
 	val &= ~ID_AA64PFR0_EL1_MPAM_MASK;
 	val |= FIELD_PREP(ID_AA64PFR0_EL1_MPAM_MASK, 1);
 	err = __vcpu_set_reg(vcpu, KVM_ARM64_SYS_REG(SYS_ID_AA64PFR0_EL1), val);
-	if (err)
-		ksft_test_result_skip("ID_AA64PFR0_EL1.MPAM is not writable, nothing to test\n");
-	else
+	if (err) {
+		ksft_print_msg("ID_AA64PFR0_EL1.MPAM writable, nothing to test\n");
+		ksft_test_result_skip("ID_AA64PFR0_EL1.MPAM=1 was writable\n");
+	} else {
 		ksft_test_result_pass("ID_AA64PFR0_EL1.MPAM=1 was writable\n");
+	}
 
 	/* Try to set MPAM=2 */
 	val &= ~ID_AA64PFR0_EL1_MPAM_MASK;
 	val |= FIELD_PREP(ID_AA64PFR0_EL1_MPAM_MASK, 2);
 	err = __vcpu_set_reg(vcpu, KVM_ARM64_SYS_REG(SYS_ID_AA64PFR0_EL1), val);
-	if (err)
-		ksft_test_result_pass("ID_AA64PFR0_EL1.MPAM not arbitrarily modifiable\n");
-	else
-		ksft_test_result_fail("ID_AA64PFR0_EL1.MPAM value should not be ignored\n");
+	ksft_test_result(err == 0, "ID_AA64PFR0_EL1.MPAM not arbitrarily modifiable\n");
 
 	/* And again for ID_AA64PFR1_EL1.MPAM_frac */
 	idx = encoding_to_range_idx(SYS_ID_AA64PFR1_EL1);
 	if ((masks[idx] & ID_AA64PFR1_EL1_MPAM_frac_MASK) == ID_AA64PFR1_EL1_MPAM_frac_MASK) {
-		ksft_test_result_skip("ID_AA64PFR1_EL1.MPAM_frac is officially writable, nothing to test\n");
-		return;
+		ksft_print_msg("ID_AA64PFR1_EL1.MPAM_frac is officially writable, nothing to test\n");
+		goto skip_frac;
 	}
 
 	/* Get the id register value */
@@ -532,28 +528,35 @@ static void test_user_set_mpam_reg(struct kvm_vcpu *vcpu)
 	val &= ~ID_AA64PFR1_EL1_MPAM_frac_MASK;
 	val |= FIELD_PREP(ID_AA64PFR1_EL1_MPAM_frac_MASK, 0);
 	err = __vcpu_set_reg(vcpu, KVM_ARM64_SYS_REG(SYS_ID_AA64PFR1_EL1), val);
-	if (err)
-		ksft_test_result_fail("ID_AA64PFR0_EL1.MPAM_frac=0 was not accepted\n");
-	else
-		ksft_test_result_pass("ID_AA64PFR0_EL1.MPAM_frac=0 worked\n");
+	ksft_test_result(err == 0, "ID_AA64PFR0_EL1.MPAM_frac=0 worked\n");
 
 	/* Try to set MPAM_frac=1 */
 	val &= ~ID_AA64PFR1_EL1_MPAM_frac_MASK;
 	val |= FIELD_PREP(ID_AA64PFR1_EL1_MPAM_frac_MASK, 1);
 	err = __vcpu_set_reg(vcpu, KVM_ARM64_SYS_REG(SYS_ID_AA64PFR1_EL1), val);
-	if (err)
-		ksft_test_result_skip("ID_AA64PFR1_EL1.MPAM_frac is not writable, nothing to test\n");
-	else
+	if (err) {
+		ksft_print_msg("ID_AA64PFR1_EL1.MPAM_frac is not writable, nothing to test\n");
+		ksft_test_result_skip("ID_AA64PFR0_EL1.MPAM_frac=1 was writable\n");
+	} else {
 		ksft_test_result_pass("ID_AA64PFR0_EL1.MPAM_frac=1 was writable\n");
+	}
 
 	/* Try to set MPAM_frac=2 */
 	val &= ~ID_AA64PFR1_EL1_MPAM_frac_MASK;
 	val |= FIELD_PREP(ID_AA64PFR1_EL1_MPAM_frac_MASK, 2);
 	err = __vcpu_set_reg(vcpu, KVM_ARM64_SYS_REG(SYS_ID_AA64PFR1_EL1), val);
-	if (err)
-		ksft_test_result_pass("ID_AA64PFR1_EL1.MPAM_frac not arbitrarily modifiable\n");
-	else
-		ksft_test_result_fail("ID_AA64PFR1_EL1.MPAM_frac value should not be ignored\n");
+	ksft_test_result(err == 0, "ID_AA64PFR1_EL1.MPAM_frac not arbitrarily modifiable\n");
+
+	return;
+
+skip_all:
+	ksft_test_result_skip("ID_AA64PFR0_EL1.MPAM=0 worked\n");
+	ksft_test_result_skip("ID_AA64PFR0_EL1.MPAM=1 was writable\n");
+	ksft_test_result_skip("ID_AA64PFR0_EL1.MPAM not arbitrarily modifiable\n");
+skip_frac:
+	ksft_test_result_skip("ID_AA64PFR0_EL1.MPAM_frac=0 worked\n");
+	ksft_test_result_skip("ID_AA64PFR0_EL1.MPAM_frac=1 was writable\n");
+	ksft_test_result_skip("ID_AA64PFR1_EL1.MPAM_frac not arbitrarily modifiable\n");
 }
 
 #define MTE_IDREG_TEST 1
