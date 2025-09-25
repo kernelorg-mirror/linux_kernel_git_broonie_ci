@@ -49,12 +49,13 @@
 #ifndef __KSELFTEST_H
 #define __KSELFTEST_H
 
+#include <stdbool.h>
+
 #ifndef NOLIBC
 #include <errno.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdarg.h>
-#include <stdbool.h>
 #include <string.h>
 #include <stdio.h>
 #include <sys/utsname.h>
