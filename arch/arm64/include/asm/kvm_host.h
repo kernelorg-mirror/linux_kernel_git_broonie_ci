@@ -791,6 +791,22 @@ struct vcpu_reset_state {
 
 struct vncr_tlb;
 
+enum fgt_regs {
+	HFGRTR_EL2_REG,
+	HFGWTR_EL2_REG,
+	HDFGRTR_EL2_REG,
+	HDFGWTR_EL2_REG,
+	HFGITR_EL2_REG,
+	HAFGRTR_EL2_REG,
+	HFGRTR2_EL2_REG,
+	HFGWTR2_EL2_REG,
+	HDFGRTR2_EL2_REG,
+	HDFGWTR2_EL2_REG,
+	HFGITR2_EL2_REG,
+
+	__NR_FGT_REGS__
+};
+
 struct kvm_vcpu_arch {
 	struct kvm_cpu_context ctxt;
 
@@ -815,6 +831,7 @@ struct kvm_vcpu_arch {
 	u64 hcr_el2;
 	u64 hcrx_el2;
 	u64 mdcr_el2;
+	u64 fgt[__NR_FGT_REGS__];
 
 	/* Exception Information */
 	struct kvm_vcpu_fault_info fault;

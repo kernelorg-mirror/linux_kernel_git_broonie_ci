@@ -2875,7 +2875,7 @@ static bool access_ras(struct kvm_vcpu *vcpu,
 {
 	struct kvm *kvm = vcpu->kvm;
 
-	switch(reg_to_encoding(r)) {
+	switch (reg_to_encoding(r)) {
 	case SYS_ERXPFGCDN_EL1:
 	case SYS_ERXPFGCTL_EL1:
 	case SYS_ERXPFGF_EL1:
@@ -5504,6 +5504,65 @@ static void kvm_calculate_fgu_traps(struct kvm *kvm)
 	set_bit(KVM_ARCH_FLAG_FGU_INITIALIZED, &kvm->arch.flags);
 }
 
+#define reg_to_fgt_group_id(reg)					\
+	({								\
+		enum fgt_group_id id;					\
+		switch(reg) {						\
+		case HFGRTR_EL2:					\
+		case HFGWTR_EL2:					\
+			id = HFGRTR_GROUP;				\
+			break;						\
+		case HFGITR_EL2:					\
+			id = HFGITR_GROUP;				\
+			break;						\
+		case HDFGRTR_EL2:					\
+		case HDFGWTR_EL2:					\
+			id = HDFGRTR_GROUP;				\
+			break;						\
+		case HAFGRTR_EL2:					\
+			id = HAFGRTR_GROUP;				\
+			break;						\
+		case HFGRTR2_EL2:					\
+		case HFGWTR2_EL2:					\
+			id = HFGRTR2_GROUP;				\
+			break;						\
+		case HFGITR2_EL2:					\
+			id = HFGITR2_GROUP;				\
+			break;						\
+		case HDFGRTR2_EL2:					\
+		case HDFGWTR2_EL2:					\
+			id = HDFGRTR2_GROUP;				\
+			break;						\
+		default:						\
+			BUILD_BUG_ON(1);				\
+		}							\
+									\
+		id;							\
+	})
+
+#define kvm_init_fgt_from_fgu(kvm, vcpu, reg)			   \
+	do {							   \
+		u64 val = kvm->arch.fgu[reg_to_fgt_group_id(reg)]; \
+		vcpu->arch.fgt[reg ## _REG] = val;		   \
+	} while (0)
+
+static void kvm_calculate_fgt_traps(struct kvm_vcpu *vcpu)
+{
+	struct kvm *kvm = vcpu->kvm;
+
+	kvm_init_fgt_from_fgu(kvm, vcpu, HFGRTR_EL2);
+	kvm_init_fgt_from_fgu(kvm, vcpu, HFGWTR_EL2);
+	kvm_init_fgt_from_fgu(kvm, vcpu, HDFGRTR_EL2);
+	kvm_init_fgt_from_fgu(kvm, vcpu, HDFGWTR_EL2);
+	kvm_init_fgt_from_fgu(kvm, vcpu, HFGITR_EL2);
+	kvm_init_fgt_from_fgu(kvm, vcpu, HAFGRTR_EL2);
+	kvm_init_fgt_from_fgu(kvm, vcpu, HFGRTR2_EL2);
+	kvm_init_fgt_from_fgu(kvm, vcpu, HFGWTR2_EL2);
+	kvm_init_fgt_from_fgu(kvm, vcpu, HDFGRTR2_EL2);
+	kvm_init_fgt_from_fgu(kvm, vcpu, HDFGWTR2_EL2);
+	kvm_init_fgt_from_fgu(kvm, vcpu, HFGITR2_EL2);
+}
+
 void kvm_calculate_traps(struct kvm_vcpu *vcpu)
 {
 	struct kvm *kvm = vcpu->kvm;
@@ -5514,6 +5573,7 @@ void kvm_calculate_traps(struct kvm_vcpu *vcpu)
 	vcpu_set_ich_hcr(vcpu);
 	vcpu_set_hcrx(vcpu);
 	kvm_calculate_fgu_traps(kvm);
+	kvm_calculate_fgt_traps(vcpu);
 
 	mutex_unlock(&kvm->arch.config_lock);
 }
