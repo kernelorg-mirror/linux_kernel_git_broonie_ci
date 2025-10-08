@@ -5488,17 +5488,10 @@ static void vcpu_set_hcr(struct kvm_vcpu *vcpu)
 		vcpu->arch.hcr_el2 |= HCR_TTLBOS;
 }
 
-void kvm_calculate_traps(struct kvm_vcpu *vcpu)
+static void kvm_calculate_fgu_traps(struct kvm *kvm)
 {
-	struct kvm *kvm = vcpu->kvm;
-
-	mutex_lock(&kvm->arch.config_lock);
-	vcpu_set_hcr(vcpu);
-	vcpu_set_ich_hcr(vcpu);
-	vcpu_set_hcrx(vcpu);
-
 	if (test_bit(KVM_ARCH_FLAG_FGU_INITIALIZED, &kvm->arch.flags))
-		goto out;
+		return;
 
 	compute_fgu(kvm, HFGRTR_GROUP);
 	compute_fgu(kvm, HFGITR_GROUP);
@@ -5509,7 +5502,19 @@ void kvm_calculate_traps(struct kvm_vcpu *vcpu)
 	compute_fgu(kvm, HDFGRTR2_GROUP);
 
 	set_bit(KVM_ARCH_FLAG_FGU_INITIALIZED, &kvm->arch.flags);
-out:
+}
+
+void kvm_calculate_traps(struct kvm_vcpu *vcpu)
+{
+	struct kvm *kvm = vcpu->kvm;
+
+	mutex_lock(&kvm->arch.config_lock);
+
+	vcpu_set_hcr(vcpu);
+	vcpu_set_ich_hcr(vcpu);
+	vcpu_set_hcrx(vcpu);
+	kvm_calculate_fgu_traps(kvm);
+
 	mutex_unlock(&kvm->arch.config_lock);
 }
 
