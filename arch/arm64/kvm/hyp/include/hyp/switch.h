@@ -255,10 +255,10 @@ static inline void __deactivate_cptr_traps(struct kvm_vcpu *vcpu)
 		clr |= hfg & m->nmask;					\
 	} while(0)
 
-#define update_fgt_traps_cs(hctxt, vcpu, reg, clr, set)			\
+#define update_fgt_traps(hctxt, vcpu, reg)				\
 	do {								\
 		struct fgt_masks *m = reg_to_fgt_masks(reg);		\
-		u64 c = clr, s = set;					\
+		u64 c = 0, s = 0;					\
 		u64 val;						\
 									\
 		ctxt_sys_reg(hctxt, reg) = read_sysreg_s(SYS_ ## reg);	\
@@ -272,9 +272,6 @@ static inline void __deactivate_cptr_traps(struct kvm_vcpu *vcpu)
 		val &= ~c;						\
 		write_sysreg_s(val, SYS_ ## reg);			\
 	} while(0)
-
-#define update_fgt_traps(hctxt, vcpu, reg)		\
-	update_fgt_traps_cs(hctxt, vcpu, reg, 0, 0)
 
 static inline bool cpu_has_amu(void)
 {
@@ -292,9 +289,7 @@ static inline void __activate_traps_hfgxtr(struct kvm_vcpu *vcpu)
 		return;
 
 	update_fgt_traps(hctxt, vcpu, HFGRTR_EL2);
-	update_fgt_traps_cs(hctxt, vcpu, HFGWTR_EL2, 0,
-			    cpus_have_final_cap(ARM64_WORKAROUND_AMPERE_AC03_CPU_38) ?
-			    HFGWTR_EL2_TCR_EL1_MASK : 0);
+	update_fgt_traps(hctxt, vcpu, HFGWTR_EL2);
 	update_fgt_traps(hctxt, vcpu, HFGITR_EL2);
 	update_fgt_traps(hctxt, vcpu, HDFGRTR_EL2);
 	update_fgt_traps(hctxt, vcpu, HDFGWTR_EL2);

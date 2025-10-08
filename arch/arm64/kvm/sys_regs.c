@@ -5561,6 +5561,9 @@ static void kvm_calculate_fgt_traps(struct kvm_vcpu *vcpu)
 	kvm_init_fgt_from_fgu(kvm, vcpu, HDFGRTR2_EL2);
 	kvm_init_fgt_from_fgu(kvm, vcpu, HDFGWTR2_EL2);
 	kvm_init_fgt_from_fgu(kvm, vcpu, HFGITR2_EL2);
+
+	if (cpus_have_final_cap(ARM64_WORKAROUND_AMPERE_AC03_CPU_38))
+		vcpu->arch.fgt[HFGWTR_EL2_REG] |= HFGWTR_EL2_TCR_EL1_MASK;
 }
 
 void kvm_calculate_traps(struct kvm_vcpu *vcpu)
