@@ -4673,6 +4673,10 @@ static void perform_access(struct kvm_vcpu *vcpu,
 	/* Skip instruction if instructed so */
 	if (likely(r->access(vcpu, params, r)))
 		kvm_incr_pc(vcpu);
+
+	/* Squash values for runtime configured RAZ registers to 0 */
+	if (sysreg_visible_as_raz(vcpu, r) && !params->is_write)
+		params->regval = 0;
 }
 
 /*
@@ -5331,7 +5335,10 @@ int kvm_sys_reg_get_user(struct kvm_vcpu *vcpu, const struct kvm_one_reg *reg,
 	if (!r || sysreg_hidden(vcpu, r))
 		return -ENOENT;
 
-	if (r->get_user) {
+	if (sysreg_visible_as_raz(vcpu, r)) {
+		val = 0;
+		ret = 0;
+	} else if (r->get_user) {
 		ret = (r->get_user)(vcpu, r, &val);
 	} else {
 		val = __vcpu_sys_reg(vcpu, r->reg);
