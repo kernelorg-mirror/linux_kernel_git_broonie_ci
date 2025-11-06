@@ -100,6 +100,13 @@ static inline bool topology_core_has_smt(int cpu)
 	return cpu_topology[cpu].thread_id != -1;
 }
 
+#else
+
+static inline bool topology_core_has_smt(int cpu)
+{
+	return false;
+}
+
 #endif
 
 #endif /* _LINUX_ARCH_TOPOLOGY_H_ */
