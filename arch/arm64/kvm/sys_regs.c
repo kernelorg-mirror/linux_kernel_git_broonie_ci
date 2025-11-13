@@ -1906,7 +1906,7 @@ static unsigned int aa32_id_visibility(const struct kvm_vcpu *vcpu,
 	 * EL. Promote to RAZ/WI in order to guarantee consistency between
 	 * systems.
 	 */
-	if (!kvm_supports_32bit_el0())
+	if (!kvm_has_aa32(vcpu->kvm))
 		return REG_RAZ | REG_USER_WI;
 
 	return id_visibility(vcpu, r);
