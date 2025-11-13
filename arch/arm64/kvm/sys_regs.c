@@ -5624,6 +5624,7 @@ out:
 int kvm_finalize_sys_regs(struct kvm_vcpu *vcpu)
 {
 	struct kvm *kvm = vcpu->kvm;
+	int i;
 
 	guard(mutex)(&kvm->arch.config_lock);
 
@@ -5638,6 +5639,23 @@ int kvm_finalize_sys_regs(struct kvm_vcpu *vcpu)
 		kvm_set_vm_id_reg(kvm, SYS_ID_AA64PFR0_EL1, val);
 		val = kvm_read_vm_id_reg(kvm, SYS_ID_PFR1_EL1) & ~ID_PFR1_EL1_GIC;
 		kvm_set_vm_id_reg(kvm, SYS_ID_PFR1_EL1, val);
+	}
+
+	/* Ensure the value stored for any RAZ registers is actually 0 */
+	for (i = 0; i < ARRAY_SIZE(sys_reg_descs); i++) {
+		const struct sys_reg_desc *r = &sys_reg_descs[i];
+
+		if (!sysreg_visible_as_raz(vcpu, r))
+			continue;
+
+		if (is_vm_ftr_id_reg(reg_to_encoding(r))) {
+			if (kvm_vm_has_ran_once(kvm))
+				continue;
+
+			kvm_set_vm_id_reg(kvm, reg_to_encoding(r), 0);
+		} else {
+			__vcpu_assign_sys_reg(vcpu, r->reg, 0);
+		}
 	}
 
 	if (vcpu_has_nv(vcpu)) {
