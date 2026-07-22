@@ -831,6 +831,13 @@ static void vhe_vcpu_put(struct kvm_vcpu *vcpu)
 	if (vcpu_has_nv(vcpu))
 		kvm_vcpu_put_hw_mmu(vcpu);
 
+	/*
+	 * Ensure any GCS memory effects from the outgoing vCPU are
+	 * visible elsewhere.
+	 */
+	if (kvm_has_gcs(vcpu->kvm))
+		gcsb_dsync();
+
 	vcpu_put_mmu(vcpu);
 }
 
