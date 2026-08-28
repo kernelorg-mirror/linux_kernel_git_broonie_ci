@@ -342,10 +342,47 @@ static int hyp_set_prot_attr(enum kvm_pgtable_prot prot, kvm_pte_t *ptep)
 	if (!cpus_have_final_cap(ARM64_KVM_HVHE))
 		prot &= ~KVM_PGTABLE_PROT_UX;
 
-	if (prot & KVM_PGTABLE_PROT_X) {
-		if (prot & KVM_PGTABLE_PROT_W)
+	/*
+	 * If we are using S1PIE then map permissions controlled via
+	 * S1PIE directly into our define PIR mappings, otherwise
+	 * build them up using the original architectrual PTE
+	 * encoding.
+	 */
+	if (cpus_have_final_cap(ARM64_HAS_S1PIE) &&
+	    cpus_have_final_cap(ARM64_KVM_HVHE)) {
+		switch (prot & (KVM_PGTABLE_PROT_X | KVM_PGTABLE_PROT_R |
+				KVM_PGTABLE_PROT_W)) {
+		case KVM_PGTABLE_PROT_R:
+			attr |= KVM_HVHE_PIR_PTE_R;
+			break;
+		case (KVM_PGTABLE_PROT_R | KVM_PGTABLE_PROT_X):
+			attr |= KVM_HVHE_PIR_PTE_RX;
+			break;
+		case (KVM_PGTABLE_PROT_R | KVM_PGTABLE_PROT_W):
+			attr |= KVM_HVHE_PIR_PTE_RW;
+			break;
+		default:
+			return -EINVAL;
+		}
+	} else {
+		if ((prot & KVM_PGTABLE_PROT_X) &&
+		    (prot & KVM_PGTABLE_PROT_W))
 			return -EINVAL;
 
+		attr |= FIELD_PREP(KVM_PTE_LEAF_ATTR_LO_S1_AP, ap);
+
+		if (cpus_have_final_cap(ARM64_KVM_HVHE)) {
+			if (!(prot & KVM_PGTABLE_PROT_PX))
+				attr |= KVM_PTE_LEAF_ATTR_HI_S1_PXN;
+			if (!(prot & KVM_PGTABLE_PROT_UX))
+				attr |= KVM_PTE_LEAF_ATTR_HI_S1_UXN;
+		} else {
+			if (!(prot & KVM_PGTABLE_PROT_PX))
+				attr |= KVM_PTE_LEAF_ATTR_HI_S1_XN;
+		}
+	}
+
+	if (prot & KVM_PGTABLE_PROT_X) {
 		if (device)
 			return -EINVAL;
 
@@ -353,17 +390,6 @@ static int hyp_set_prot_attr(enum kvm_pgtable_prot prot, kvm_pte_t *ptep)
 			attr |= KVM_PTE_LEAF_ATTR_HI_S1_GP;
 	}
 
-	if (cpus_have_final_cap(ARM64_KVM_HVHE)) {
-		if (!(prot & KVM_PGTABLE_PROT_PX))
-			attr |= KVM_PTE_LEAF_ATTR_HI_S1_PXN;
-		if (!(prot & KVM_PGTABLE_PROT_UX))
-			attr |= KVM_PTE_LEAF_ATTR_HI_S1_UXN;
-	} else {
-		if (!(prot & KVM_PGTABLE_PROT_PX))
-			attr |= KVM_PTE_LEAF_ATTR_HI_S1_XN;
-	}
-
-	attr |= FIELD_PREP(KVM_PTE_LEAF_ATTR_LO_S1_AP, ap);
 	if (!kvm_lpa2_is_enabled())
 		attr |= FIELD_PREP(KVM_PTE_LEAF_ATTR_LO_S1_SH, sh);
 	attr |= KVM_PTE_LEAF_ATTR_LO_S1_AF;
@@ -391,7 +417,12 @@ enum kvm_pgtable_prot kvm_pgtable_hyp_pte_prot(kvm_pte_t pte)
 			prot |= KVM_PGTABLE_PROT_PX;
 	}
 
-	ap = FIELD_GET(KVM_PTE_LEAF_ATTR_LO_S1_AP, pte);
+	if (cpus_have_final_cap(ARM64_HAS_S1PIE) &&
+	    cpus_have_final_cap(ARM64_KVM_HVHE))
+		ap = (pte & KVM_PTE_LEAF_ATTR_HI_S1_DBM) ?
+			KVM_PTE_LEAF_ATTR_LO_S1_AP_RW : KVM_PTE_LEAF_ATTR_LO_S1_AP_RO;
+	else
+		ap = FIELD_GET(KVM_PTE_LEAF_ATTR_LO_S1_AP, pte);
 	if (ap == KVM_PTE_LEAF_ATTR_LO_S1_AP_RO)
 		prot |= KVM_PGTABLE_PROT_R;
 	else if (ap == KVM_PTE_LEAF_ATTR_LO_S1_AP_RW)

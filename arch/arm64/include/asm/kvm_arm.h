@@ -12,6 +12,7 @@
 #include <linux/bits.h>
 #include <linux/types.h>
 #include <asm/esr.h>
+#include <asm/pgtable-hwdef.h>
 #include <asm/sysreg.h>
 
 /*
@@ -281,5 +282,28 @@
 
 #define VCPU_RESET_PSTATE_SVC	(PSR_AA32_MODE_SVC | PSR_AA32_A_BIT | \
 				 PSR_AA32_I_BIT | PSR_AA32_F_BIT)
+
+/*
+ * Permission indirection configuration for the hVHE hypervisor when
+ * we have FEAT_S1PIE. Like the host kernel we configure a mapping
+ * mostly equivalent to the non-PIE meanings of the bits.
+ *
+ * These mappings are minimal with only things used from the
+ * hVHE hypervisor, nVHE is not supported.  Write permission is
+ * controlled via PIIndex[1].
+ */
+
+#define KVM_HYP_PIR_PTE(pii3, pii2, pii1, pii0)				\
+	((UL(pii3) << PTE_PI_IDX_3) | (UL(pii2) << PTE_PI_IDX_2) |	\
+	 (UL(pii1) << PTE_PI_IDX_1) | (UL(pii0) << PTE_PI_IDX_0))
+
+#define KVM_HVHE_PIR_PTE_RX	(KVM_HYP_PIR_PTE(0, 0, 0, 0))
+#define KVM_HVHE_PIR_PTE_R	(KVM_HYP_PIR_PTE(1, 1, 0, 0))
+#define KVM_HVHE_PIR_PTE_RW	(KVM_HYP_PIR_PTE(1, 1, 1, 0))
+
+#define KVM_HVHE_PIR_EL2 (						\
+	PIRx_ELx_PERM_PREP(pte_pi_index(KVM_HVHE_PIR_PTE_RX), PIE_RX)	| \
+	PIRx_ELx_PERM_PREP(pte_pi_index(KVM_HVHE_PIR_PTE_R),  PIE_R)	| \
+	PIRx_ELx_PERM_PREP(pte_pi_index(KVM_HVHE_PIR_PTE_RW), PIE_RW))
 
 #endif /* __ARM64_KVM_ARM_H__ */
